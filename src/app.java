@@ -30,9 +30,10 @@ public class app {
 	private JLabel landLabel1;
 	private JLabel landLabel2;
 	private boolean runState = true;
+	private boolean landState = true;
 	private boolean bowState = false;
 	private boolean endState = false;
-	private boolean landState = true;
+	private boolean jumpState = false;
 
 	/**
 	 * Launch the application.
@@ -163,6 +164,11 @@ public class app {
 		Thread dinoThread = new Thread(new Runnable() {
 			@Override
 			public void run() {
+				/* Return */
+				if(jumpState) {
+					return;
+				}
+				/* Run */
 				while (runState) {
 					dinoRun();
 				}
@@ -213,15 +219,28 @@ public class app {
 					dinoBow();
 				}
 				if(!bowState) {
+					dinoLabel.setBounds(56, 147, 80, 81);
 					return;
 				}
 			}
 
 		});
 		
+		/* 恐龍跳躍 */
+		Thread jumpThread = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				if(!jumpState) {
+					return;
+				}
+				dinoJump();
+			}
+		});
+		
 		dinoThread.start();
 		landThread.start();
 		bowThread.start();
+		jumpThread.start();
 
 	}
 
@@ -234,7 +253,6 @@ public class app {
 			if(!runState) {
 				return;
 			}
-			dinoLabel.setBounds(56, 147, 80, 81);
 			dinoLabel.setIcon(new ImageIcon(
 					new ImageIcon("img//dinorun1.png").getImage().getScaledInstance(49, 49, Image.SCALE_DEFAULT)));
 			Thread.sleep(100);
@@ -272,6 +290,27 @@ public class app {
 	}
 	
 	/**
+	 * 恐龍跳躍
+	 */
+	private void dinoJump() {
+		try {
+			for (int t = 0; t <= 70; t++) {
+				dinoLabel.setLocation(dinoLabel.getLocation().x, dinoLabel.getLocation().y - 1);
+				Thread.sleep(5);
+			}
+			for (int t = 0; t <= 70; t++) {
+				dinoLabel.setLocation(dinoLabel.getLocation().x, dinoLabel.getLocation().y + 1);
+				Thread.sleep(5);
+			}
+
+			jumpState = false;
+			
+		} catch (InterruptedException e) {
+			return;
+		}
+	}
+	
+	/**
 	 * 恐龍跳Event
 	 */
 	Action dinoJumpEvent = new AbstractAction() {
@@ -279,9 +318,17 @@ public class app {
 		private static final long serialVersionUID = 1L;
 		
 		public void actionPerformed(ActionEvent e) {
-	        System.out.println("up");
+			/* 上一次還沒完成 => Return */
+			if(jumpState) {
+				return;
+			}
+			jumpState = true;
+			bowState = false;
+			landState = false; // Prevent Land Accelerate
+	        startRun();
 	    }
 	};	
+	
 	
 	/**
 	 * 恐龍蹲Event
@@ -291,6 +338,9 @@ public class app {
 		private static final long serialVersionUID = 1L;
 		
 		public void actionPerformed(ActionEvent e) {
+			if(jumpState) {
+				return;
+			}
 			runState = false;
 			bowState = true;
 			landState = false; // Prevent Land Accelerate
@@ -306,8 +356,11 @@ public class app {
 		private static final long serialVersionUID = 1L;
 		
 		public void actionPerformed(ActionEvent e) {
+			if(jumpState) {
+				return;
+			}
 			runState = true;
-			bowState = false;			
+			bowState = false;
 			landState = false; // Prevent Land Accelerate
 			startRun();
 	    }
@@ -334,7 +387,9 @@ public class app {
 		label.setLocation(436, label.getLocation().y);
 	}
 	
-	
+	/**
+	 * 遊戲結束
+	 */
 	private void endRun() {
 		endState = true;
 		runState = false;
