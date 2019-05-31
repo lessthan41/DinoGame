@@ -30,7 +30,6 @@ public class app {
 	private JLabel landLabel1;
 	private JLabel landLabel2;
 	private boolean runState = true;
-	private boolean landState = true;
 	private boolean bowState = false;
 	private boolean endState = false;
 	private boolean jumpState = false;
@@ -129,8 +128,6 @@ public class app {
 		btnStart.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				runState = true;
-				endState = false;
 				startRun();
 			}
 		});
@@ -156,18 +153,14 @@ public class app {
 	}
 
 	/**
-	 * 開跑
-	 */
-	private void startRun() {
-
-		/* 恐龍跑 */
-		Thread dinoThread = new Thread(new Runnable() {
+	 *  恐龍跑 Thread
+	*/
+	private void dinoRunThread(){
+		Thread runThread = new Thread(new Runnable() {
 			@Override
 			public void run() {
-				/* Return */
-				if(jumpState) {
-					return;
-				}
+				/* 確保位置正確 */
+				dinoLabel.setBounds(56, 147, 80, 81);
 				/* Run */
 				while (runState) {
 					dinoRun();
@@ -177,7 +170,7 @@ public class app {
 					dinoLabel.setIcon(new ImageIcon(new ImageIcon("img//dinocrash.png").getImage().getScaledInstance(50,
 							50, Image.SCALE_DEFAULT)));
 				}
-				/* Return */
+				/* 脫離跑步狀態就 Return */
 				if(!runState) {
 					return;
 				}
@@ -185,14 +178,18 @@ public class app {
 			}
 
 		});
+		
+		runThread.start();
+	}
 
-		/* 地板跑 */
+
+	/**
+	 *  地板跑  Thread
+	*/	
+	private void landRunThread() {
 		Thread landThread = new Thread(new Runnable() {
 			@Override
 			public void run() {
-				if(!landState) {
-					return;
-				}
 				while (!endState) {
 					landRun();
 					/* 補充地板 */
@@ -204,111 +201,63 @@ public class app {
 				}
 				/* Return */
 				if(endState) {
-					landState = true;
 					return;
 				}
 			}
 
 		});
-		
-		/* 恐龍蹲下 */
+		landThread.start();
+	}
+	
+	
+	/**
+	 *  恐龍蹲下  Thread
+	*/
+	private void dinoBowThread() {
 		Thread bowThread = new Thread(new Runnable() {
 			@Override
 			public void run() {
+				if(!bowState) {
+					return;
+				}
+				dinoLabel.setBounds(50, 155, 80, 81);
 				while(bowState) {
 					dinoBow();
 				}
-				if(!bowState) {
-					dinoLabel.setBounds(56, 147, 80, 81);
-					return;
-				}
 			}
 
 		});
-		
-		/* 恐龍跳躍 */
+		bowThread.start();
+	}
+
+	
+	/**
+	 *  恐龍跳躍  Thread
+	*/
+	private void dinoJumpThread() {
 		Thread jumpThread = new Thread(new Runnable() {
 			@Override
 			public void run() {
-				if(!jumpState) {
-					return;
-				}
 				dinoJump();
 			}
 		});
-		
-		dinoThread.start();
-		landThread.start();
-		bowThread.start();
 		jumpThread.start();
-
 	}
 
-	/**
-	 * 恐龍跑步(含計時)
-	 */
-	private void dinoRun() {
-		try {
-			Thread.sleep(100);
-			if(!runState) {
-				return;
-			}
-			dinoLabel.setIcon(new ImageIcon(
-					new ImageIcon("img//dinorun1.png").getImage().getScaledInstance(49, 49, Image.SCALE_DEFAULT)));
-			Thread.sleep(100);
-			if(!runState) {
-				return;
-			}
-			dinoLabel.setIcon(new ImageIcon(
-					new ImageIcon("img//dinorun2.png").getImage().getScaledInstance(50, 50, Image.SCALE_DEFAULT)));
-		} catch (InterruptedException e) {
-			return;
-		}
-	}
 	
 	/**
-	 * 恐龍蹲下(含計時)
+	 * 開跑
 	 */
-	private void dinoBow() {
-		try {
-			Thread.sleep(100);
-			if(!bowState) {
-				return;
-			}
-			dinoLabel.setBounds(50, 155, 80, 81);
-			dinoLabel.setIcon(new ImageIcon(
-					new ImageIcon("img//dinodown1.png").getImage().getScaledInstance(50, 35, Image.SCALE_DEFAULT)));
-			Thread.sleep(100);
-			if(!bowState) {
-				return;
-			}
-			dinoLabel.setIcon(new ImageIcon(
-					new ImageIcon("img//dinodown2.png").getImage().getScaledInstance(50, 35, Image.SCALE_DEFAULT)));
-		} catch (InterruptedException e) {
-			return;
-		}
-	}
-	
-	/**
-	 * 恐龍跳躍
-	 */
-	private void dinoJump() {
-		try {
-			for (int t = 0; t <= 70; t++) {
-				dinoLabel.setLocation(dinoLabel.getLocation().x, dinoLabel.getLocation().y - 1);
-				Thread.sleep(5);
-			}
-			for (int t = 0; t <= 70; t++) {
-				dinoLabel.setLocation(dinoLabel.getLocation().x, dinoLabel.getLocation().y + 1);
-				Thread.sleep(5);
-			}
+	private void startRun() {
+		
+		runState = true;
+		endState = false;
+		
+		dinoRunThread();
+		landRunThread();
 
-			jumpState = false;
-			
-		} catch (InterruptedException e) {
-			return;
-		}
 	}
+
 	
 	/**
 	 * 恐龍跳Event
@@ -323,9 +272,7 @@ public class app {
 				return;
 			}
 			jumpState = true;
-			bowState = false;
-			landState = false; // Prevent Land Accelerate
-	        startRun();
+	        dinoJumpThread();
 	    }
 	};	
 	
@@ -338,15 +285,16 @@ public class app {
 		private static final long serialVersionUID = 1L;
 		
 		public void actionPerformed(ActionEvent e) {
+			/* 正在跳就不讓你蹲 */
 			if(jumpState) {
 				return;
 			}
 			runState = false;
 			bowState = true;
-			landState = false; // Prevent Land Accelerate
-			startRun();
+			dinoBowThread();
 	    }
 	};
+	
 	
 	/**
 	 * 恐龍蹲完Event
@@ -361,12 +309,77 @@ public class app {
 			}
 			runState = true;
 			bowState = false;
-			landState = false; // Prevent Land Accelerate
-			startRun();
+			dinoRunThread();
 	    }
 	};
 	
 	
+	
+	/**
+	 * 恐龍跑步(含計時)
+	 */
+	private void dinoRun() {
+		try {
+			if(!runState) {
+				return;
+			}
+			dinoLabel.setIcon(new ImageIcon(
+					new ImageIcon("img//dinorun1.png").getImage().getScaledInstance(49, 49, Image.SCALE_DEFAULT)));
+			Thread.sleep(100);
+			if(!runState) {
+				return;
+			}
+			dinoLabel.setIcon(new ImageIcon(
+					new ImageIcon("img//dinorun2.png").getImage().getScaledInstance(50, 50, Image.SCALE_DEFAULT)));
+			Thread.sleep(100);
+		} catch (InterruptedException e) {
+			return;
+		}
+	}
+	
+	/**
+	 * 恐龍蹲下(含計時)
+	 */
+	private void dinoBow() {
+		try {
+			if(!bowState) {
+				return;
+			}
+			dinoLabel.setIcon(new ImageIcon(
+					new ImageIcon("img//dinodown1.png").getImage().getScaledInstance(50, 35, Image.SCALE_DEFAULT)));
+			Thread.sleep(100);
+			if(!bowState) {
+				return;
+			}
+			dinoLabel.setIcon(new ImageIcon(
+					new ImageIcon("img//dinodown2.png").getImage().getScaledInstance(50, 35, Image.SCALE_DEFAULT)));
+			Thread.sleep(100);
+		} catch (InterruptedException e) {
+			return;
+		}
+	}
+	
+	/**
+	 * 恐龍跳躍
+	 */
+	private void dinoJump() {
+		try {
+			for (int t = 0; t <= 65; t++) {
+				dinoLabel.setLocation(dinoLabel.getLocation().x, dinoLabel.getLocation().y - 1);
+				Thread.sleep(5);
+			}
+			for (int t = 0; t <= 65; t++) {
+				dinoLabel.setLocation(dinoLabel.getLocation().x, dinoLabel.getLocation().y + 1);
+				Thread.sleep(5);
+			}
+
+			jumpState = false;
+			
+		} catch (InterruptedException e) {
+			return;
+		}
+	}
+
 	/**
 	 * 地板移動(含計時)
 	 */
@@ -393,6 +406,5 @@ public class app {
 	private void endRun() {
 		endState = true;
 		runState = false;
-		landState = false;
 	}
 }
